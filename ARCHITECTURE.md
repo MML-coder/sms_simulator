@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains how the SMS alert simulation is built and the approach, the design, the trade-offs I considered, the constraints, how it would scale, how it handles failure, how it is tested, and what it does not do. To run it, see the [README](README.md). For measured numbers, see [performance/README.md](performance/README.md).
+This document explains how the SMS alert simulation is built and the approach, the design, the trade-offs I considered, the constraints, how it would scale, how it handles failure, how it is tested, and what it does not do. To run it, see the [README](README.md). 
 
 ## Approach
 
@@ -58,15 +58,11 @@ The modules below are the code behind the boxes in the [architecture diagram](#a
 
 **4. The sender loop doesn't know the send is simulated.** The loop only asks "send this message and tell me whether it worked". Because it can't see inside the send, it times each send with a clock. The average therefore includes any delay caused by a busy event loop, which is what a user of the system would actually experience, and which the benchmarks show is the first thing to degrade under load.
 
-**5. If one part fails, the whole run stops.** The producer and the senders run in one `TaskGroup`. If a sender crashes, the group cancels everything else; without that, the producer could wait forever on a full queue nobody reads. The monitor runs outside the group and is always told to finish, so the final line is printed even after a failure.
+**5. End of input is a queue shutdown.** After the last message the producer calls `queue.shutdown()` (Python 3.13). Senders keep taking the messages already queued, and once the queue is empty their `get()` raises `QueueShutDown` and they exit. My first version put one `STOP` marker per sender on the queue instead. That worked, but the producer had to know how many senders there were. With `shutdown()` it doesn't, and the same call with `immediate=True` provides the graceful stop.
 
-**6. End of input is a queue shutdown.** After the last message the producer calls `queue.shutdown()` (Python 3.13). Senders keep taking the messages already queued, and once the queue is empty their `get()` raises `QueueShutDown` and they exit. My first version put one `STOP` marker per sender on the queue instead. That worked, but the producer had to know how many senders there were. With `shutdown()` it doesn't, and the same call with `immediate=True` provides the graceful stop.
+**6. Only simple counters.** I built a snapshot object for per-interval numbers and removed it, because it added structure the output didn't need. I also left out latency percentiles: here the delay is a random draw with a known shape, so a histogram would only measure the random number generator. With a real gateway, p95 and p99 latency would be the first metrics I'd add.
 
-**7. Clean stop on Ctrl+C or SIGTERM.** SIGTERM is what `docker stop`, Kubernetes and systemd send. Without a handler the process dies on the spot and the final numbers are lost. With it, queued messages are dropped, in-flight sends get a bounded time to finish, the final line is printed, and the exit code says which signal stopped the run.
-
-**8. Only simple counters.** I built a snapshot object for per-interval numbers and removed it, because it added structure the output didn't need. I also left out latency percentiles: here the delay is a random draw with a known shape, so a histogram would only measure the random number generator. With a real gateway, p95 and p99 latency would be the first metrics I'd add.
-
-**9. Retries wrap the send; network errors are failures, bugs are not.** An `OSError` (`ConnectionError`, `TimeoutError`, ...) means the gateway couldn't be reached: the send counts as failed and the sender moves on. Any other exception is a bug in our code, and retrying would hide it, so it stops the run. `with_retries(send, n, stats)` is a decorator: it returns a send with the same signature that tries again up to `n` times, so backoff, rate limiting or a circuit breaker could be added later as further wrappers. `--retries` defaults to 0 so the observed failure rate matches the configured one.
+**7. Retries wrap the send; network errors are failures, bugs are not.** An `OSError` (`ConnectionError`, `TimeoutError`, ...) means the gateway couldn't be reached: the send counts as failed and the sender moves on. Any other exception is a bug in our code, and retrying would hide it, so it stops the run. `with_retries(send, n, stats)` is a decorator: it returns a send with the same signature that tries again up to `n` times, so backoff, rate limiting or a circuit breaker could be added later as further wrappers. `--retries` defaults to 0 so the observed failure rate matches the configured one.
 
 ## Trade-offs considered
 
@@ -98,11 +94,6 @@ Libraries: the building blocks come from the standard library wherever it has a 
 
 Where it stands today (Apple M2, details in [performance/README.md](performance/README.md)):
 
-- About 245,000 messages per second with no send delay, on one core.
-- With a 10 ms send delay, throughput grows linearly with senders up to 1,000 (93,000/s); past that the event loop is saturated and more senders only add latency.
-- About 60% of the CPU goes to generating random messages; the queue, senders and stats share the rest.
-- Memory is flat at 24 MB from 10,000 to 5 million messages; each sender costs about 2 KB.
-
 How the design would evolve:
 
 - **Stage 1: one machine, several cores.** Run K copies of the whole pipeline in K processes, each with 1/K of the messages, and add up their counters at the end. Nothing is shared, so this should scale with cores.
@@ -114,7 +105,7 @@ How the design would evolve:
 
 Source: [docs/diagrams/scaling.excalidraw](docs/diagrams/scaling.excalidraw).
 
-- **The gateway becomes the limit.** SMS providers throttle requests, so the senders need a shared rate limiter (a token bucket), not just more senders.
+- **The sms gateway could become the limit.** SMS providers throttle requests, so the senders need a shared rate limiter (a token bucket), not just more senders.
 - **Kafka parallelism is capped by partitions.** Consumers in a group can't usefully outnumber partitions, so the partition count is a capacity decision made up front.
 - **Metrics move out of the process.** `Stats` becomes counters in a metrics system, aggregated across instances, plus p95/p99 latency.
 - **Priority.** Urgent alerts shouldn't wait behind bulk messages: separate queues or topics.
@@ -139,7 +130,7 @@ What changes when the queue becomes a broker, as in the [Stage 2 diagram](#scali
 - **A consumer takes a message and crashes.** Today the message is lost. SQS hides a received message for a visibility timeout and makes it visible again if it isn't deleted in time. Kafka has no timeout: the offset was never committed, so after a rebalance another consumer reads from the last committed offset.
 - **A message keeps failing.** Today it is retried immediately and then counted as failed. With a broker, transient failures are retried with backoff (SQS visibility or delay, Kafka retry topics), and after N attempts the message moves to a dead-letter queue (SQS redrive policy; in Kafka a DLQ topic, usually through the client framework). The existing split between gateway errors (retry) and bugs (stop) maps onto retry versus dead-letter.
 
-## Testing
+## Unit Testing
 
 ```bash
 uv run pytest
