@@ -1,0 +1,69 @@
+# Python 3.13.16, Darwin arm64
+## A: throughput vs senders, mean send time 10ms, 200 messages per sender
+senders=1 expected=100/s final elapsed=2.1s sent=181 failed=19 retries=0 avg=10.58ms rate=94.2/s rss=24.3MB
+senders=10 expected=1000/s final elapsed=2.1s sent=1826 failed=174 retries=0 avg=10.22ms rate=970.6/s rss=24.2MB
+senders=100 expected=10000/s final elapsed=2.0s sent=18007 failed=1993 retries=0 avg=10.00ms rate=9812.8/s rss=24.3MB
+senders=1000 expected=100000/s final elapsed=2.1s sent=180015 failed=19985 retries=0 avg=10.32ms rate=93342.5/s rss=26.6MB
+senders=10000 expected=1000000/s final elapsed=17.8s sent=1800098 failed=199902 retries=0 avg=88.55ms rate=112076.2/s rss=50.1MB
+## B: overhead ceiling, no send delay, 1M messages, 3 runs each
+senders=1 run=1 final elapsed=19.1s sent=899876 failed=100124 retries=0 avg=0.02ms rate=52300.8/s rss=24.2MB
+senders=1 run=2 final elapsed=19.1s sent=899876 failed=100124 retries=0 avg=0.02ms rate=52394.0/s rss=24.2MB
+senders=1 run=3 final elapsed=18.6s sent=899876 failed=100124 retries=0 avg=0.02ms rate=53711.0/s rss=24.2MB
+senders=10 run=1 final elapsed=5.8s sent=899688 failed=100312 retries=0 avg=0.06ms rate=173087.5/s rss=24.2MB
+senders=10 run=2 final elapsed=5.7s sent=899688 failed=100312 retries=0 avg=0.06ms rate=174420.3/s rss=24.3MB
+senders=10 run=3 final elapsed=5.6s sent=899688 failed=100312 retries=0 avg=0.06ms rate=179292.1/s rss=24.3MB
+senders=100 run=1 final elapsed=4.1s sent=900006 failed=99994 retries=0 avg=0.41ms rate=242375.7/s rss=24.3MB
+senders=100 run=2 final elapsed=4.1s sent=900006 failed=99994 retries=0 avg=0.41ms rate=241600.8/s rss=24.2MB
+senders=100 run=3 final elapsed=4.1s sent=900006 failed=99994 retries=0 avg=0.41ms rate=245430.9/s rss=24.4MB
+senders=1000 run=1 final elapsed=4.1s sent=899977 failed=100023 retries=0 avg=4.10ms rate=243467.2/s rss=26.2MB
+senders=1000 run=2 final elapsed=4.0s sent=899977 failed=100023 retries=0 avg=4.00ms rate=249350.7/s rss=26.2MB
+senders=1000 run=3 final elapsed=4.0s sent=899977 failed=100023 retries=0 avg=3.94ms rate=252936.1/s rss=26.1MB
+senders=10000 run=1 final elapsed=4.2s sent=899838 failed=100162 retries=0 avg=40.86ms rate=239603.7/s rss=46.1MB
+senders=10000 run=2 final elapsed=4.1s sent=899838 failed=100162 retries=0 avg=40.10ms rate=244143.9/s rss=46.2MB
+senders=10000 run=3 final elapsed=4.1s sent=899838 failed=100162 retries=0 avg=40.23ms rate=243362.7/s rss=46.1MB
+## C: memory vs messages, no send delay, 100 senders
+messages=10000 final elapsed=0.0s sent=9018 failed=982 retries=0 avg=0.42ms rate=234316.9/s rss=24.2MB
+messages=100000 final elapsed=0.4s sent=90129 failed=9871 retries=0 avg=0.41ms rate=246043.8/s rss=24.3MB
+messages=1000000 final elapsed=4.2s sent=900006 failed=99994 retries=0 avg=0.42ms rate=236261.2/s rss=24.3MB
+messages=5000000 final elapsed=20.8s sent=4501113 failed=498887 retries=0 avg=0.42ms rate=240466.2/s rss=24.3MB
+## D: profile at the ceiling, 1000 senders, 1M messages, top 15 by own time
+final elapsed=24.0s sent=899977 failed=100023 retries=0 avg=23.94ms rate=41694.4/s
+         156675730 function calls (156674784 primitive calls) in 24.038 seconds
+
+   Ordered by: internal time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+  1000000    7.743    0.000   12.531    0.000 random.py:458(choices)
+ 51539686    2.580    0.000    2.580    0.000 {method 'random' of '_random.Random' objects}
+ 50539686    2.224    0.000    2.224    0.000 {built-in method math.floor}
+  1001000    1.071    0.000    4.269    0.000 sender.py:53(sender)
+  1000000    0.625    0.000    1.424    0.000 queues.py:156(put_nowait)
+  1000000    0.567    0.000   14.792    0.000 producer.py:11(generate_message)
+  2000000    0.517    0.000    1.073    0.000 sender.py:35(__call__)
+  1000000    0.494    0.000    1.194    0.000 random.py:295(randrange)
+  2000000    0.450    0.000    1.555    0.000 sender.py:41(attempt)
+  1000000    0.448    0.000    0.860    0.000 queues.py:203(get_nowait)
+  1003018    0.404    0.000    0.781    0.000 base_events.py:853(_call_soon)
+  2000998    0.387    0.000    0.809    0.000 queues.py:114(full)
+  1003018    0.386    0.000   23.281    0.000 {method 'run' of '_contextvars.Context' objects}
+  2000000    0.363    0.000    0.473    0.000 tasks.py:712(sleep)
+     1017    0.352    0.000   23.984    0.024 base_events.py:1981(_run_once)
+  1000000    0.338    0.000    0.518    0.000 random.py:245(_randbelow_with_getrandbits)
+  1000998    0.335    0.000    2.176    0.000 queues.py:125(put)
+  1003018    0.334    0.000    1.188    0.000 base_events.py:824(call_soon)
+  1001000    0.328    0.000    1.256    0.000 queues.py:172(get)
+## E: queue size, 100 senders
+queue=1 delay=10ms final elapsed=2.1s sent=18074 failed=1926 retries=0 avg=10.07ms rate=9688.3/s rss=24.4MB
+queue=10 delay=10ms final elapsed=2.1s sent=18013 failed=1987 retries=0 avg=10.04ms rate=9737.8/s rss=24.3MB
+queue=50 delay=10ms final elapsed=2.1s sent=17996 failed=2004 retries=0 avg=10.04ms rate=9741.5/s rss=24.3MB
+queue=100 delay=10ms final elapsed=2.2s sent=17983 failed=2017 retries=0 avg=10.76ms rate=9070.1/s rss=24.4MB
+queue=200 delay=10ms final elapsed=2.1s sent=18005 failed=1995 retries=0 avg=10.12ms rate=9654.2/s rss=24.3MB
+queue=1000 delay=10ms final elapsed=2.1s sent=17964 failed=2036 retries=0 avg=10.14ms rate=9724.9/s rss=23.7MB
+queue=10000 delay=10ms final elapsed=2.1s sent=18009 failed=1991 retries=0 avg=10.05ms rate=9487.3/s rss=25.4MB
+queue=1 delay=0 final elapsed=21.0s sent=899877 failed=100123 retries=0 avg=0.02ms rate=47537.5/s rss=24.2MB
+queue=10 delay=0 final elapsed=7.3s sent=899700 failed=100300 retries=0 avg=0.07ms rate=137070.0/s rss=24.4MB
+queue=50 delay=0 final elapsed=5.5s sent=899879 failed=100121 retries=0 avg=0.27ms rate=183413.3/s rss=24.2MB
+queue=100 delay=0 final elapsed=4.3s sent=900007 failed=99993 retries=0 avg=0.43ms rate=232224.6/s rss=24.2MB
+queue=200 delay=0 final elapsed=4.5s sent=900006 failed=99994 retries=0 avg=0.45ms rate=222937.4/s rss=24.4MB
+queue=1000 delay=0 final elapsed=4.3s sent=899971 failed=100029 retries=0 avg=0.43ms rate=233068.4/s rss=24.4MB
+queue=10000 delay=0 final elapsed=4.2s sent=899949 failed=100051 retries=0 avg=0.41ms rate=239807.4/s rss=25.3MB
