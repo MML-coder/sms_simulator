@@ -6,3 +6,6 @@ __pycache__/
 build/
 dist/
 .DS_Store
+
+# Exercise statement, kept locally only
+sms_simulation.md
