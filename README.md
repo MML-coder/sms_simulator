@@ -119,8 +119,7 @@ DEBUG output looks like this:
 2026-10-21 21:19:10,640 DEBUG [sender-0] sms_sim.retry: retry 1 of 2
 ```
 
-Each line is: time, level, `[task that wrote it]`, module, message. Message contents are never logged, since real SMS content is personal data.
-
+Each line is: time, level, `[task that wrote it]`, module, message. Message contents are never logged.
 Because progress and logs use different streams, you can send them to different places:
 
 ```bash
