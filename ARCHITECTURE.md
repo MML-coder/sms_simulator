@@ -35,8 +35,8 @@ The modules below are the code behind the boxes in the [architecture diagram](#a
 
 ## Constraints and assumptions
 
-- Python 3.13 or later, for `asyncio.Queue.shutdown()`.
-- macOS or Linux: signal handling uses `loop.add_signal_handler`, which is not available on Windows.
+- Python 3.13 or later.
+- macOS or Linux: signal handling uses `loop.add_signal_handler`, which may not available on Windows.
 - One producer, as the exercise describes. Several producers are covered under Scaling.
 - All senders share one mean send time and one failure rate. The exercise could also be read as "each sender has its own settings"; I chose the shared reading.
 - A message is 1–100 random characters from letters, digits and space. Messages have no recipient, so ordering per recipient doesn't apply.
