@@ -109,7 +109,7 @@ How the design would evolve:
 
 What the current system guarantees:
 
-- **A bug stops the run instead of hanging it.** A crash in the producer or any sender cancels the rest through the `TaskGroup`; the final line is still printed.
+-  A crash in the producer or any sender cancels the rest through the `TaskGroup`; the final line is still printed.
 - **Gateway errors are failures, not crashes.** An `OSError` from the send counts as a failed message and the sender continues. Even a gateway that fails every request lets the run finish.
 - **Optional retries** (`--retries`) retry a failed send immediately, up to N times, and count each retry.
 - **Graceful stop.** Ctrl+C and SIGTERM stop new work, give in-flight sends a bounded time, and report what was left unsent.
