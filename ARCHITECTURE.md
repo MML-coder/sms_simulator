@@ -15,9 +15,6 @@ The work in this system is mostly waiting. A sender hands a message to a gateway
 
 ![Architecture: producer, bounded queue, senders, stats and monitor in one asyncio event loop](docs/diagrams/architecture.png)
 
-Source: [docs/diagrams/architecture.excalidraw](docs/diagrams/architecture.excalidraw), editable at [excalidraw.com](https://excalidraw.com) (Open, then pick the file).
-
-
 1. The producer generates it and calls `put()`. If the queue is full, the producer waits there; this is the back-pressure that keeps memory flat.
 2. A free sender takes it with `get()`, calls `send()`, and times the call with a clock.
 3. The sender records the result in `Stats`: sent or failed, plus the measured time.
@@ -102,8 +99,6 @@ How the design would evolve:
 - **Stage 2: several machines.** Producers publish to a broker (SQS or Kafka) and a fleet of sender services consumes from it. The bounded queue becomes queue depth or consumer lag, and that is what autoscaling watches.
 
 ![Stage 2: producers publish to a broker, sender services consume and call a rate-limited gateway, failures go to a dead-letter queue](docs/diagrams/scaling.png)
-
-Source: [docs/diagrams/scaling.excalidraw](docs/diagrams/scaling.excalidraw).
 
 - **The sms gateway could become the limit.** SMS providers throttle requests, so the senders need a shared rate limiter (a token bucket), not just more senders.
 - **Kafka parallelism is capped by partitions.** Consumers in a group can't usefully outnumber partitions, so the partition count is a capacity decision made up front.
