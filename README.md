@@ -3,7 +3,6 @@
 A producer generates random SMS messages, a pool of concurrent senders simulates delivering them with a configurable delay and failure rate, and a progress monitor prints how many were sent and failed, the average send time and the throughput. Everything runs in one Python process on one asyncio event loop.
 
 - How it is built and why: [ARCHITECTURE.md](ARCHITECTURE.md)
-- Benchmarks and findings: [performance/README.md](performance/README.md)
 
 ## Quick start
 
@@ -164,12 +163,7 @@ Here the producer is waiting on a full queue and the senders are in the middle o
 
 ## Benchmarks (optional)
 
-```bash
-performance/bench.sh > performance/results/my-machine.txt          # about 5 minutes
-uv run --group bench performance/plot.py performance/results/my-machine.txt
-```
-
-Results from an Apple M2 and what they show are in [performance/README.md](performance/README.md).
+Results from my local laptop and what they show are in [performance/README.md](performance/README.md).
 
 ## Project layout
 
